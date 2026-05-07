@@ -2,7 +2,7 @@
 __pycache__/
 *.pyc
 output/
+!output/data_description.md
 context.json
 generated_queries.json
 query_results.json
-data_description.md
