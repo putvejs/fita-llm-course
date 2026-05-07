@@ -1,0 +1,138 @@
+{
+  "server": "87.110.123.151",
+  "extracted_at": "2026-05-07T08:41:46.313940",
+  "databases": {
+    "direct_payments": {
+      "mandates": {
+        "columns": [
+          {
+            "name": "id",
+            "type": "varchar(50)",
+            "nullable": true,
+            "key": "",
+            "default": null,
+            "extra": ""
+          },
+          {
+            "name": "created_at",
+            "type": "datetime",
+            "nullable": true,
+            "key": "",
+            "default": null,
+            "extra": ""
+          },
+          {
+            "name": "scheme",
+            "type": "varchar(50)",
+            "nullable": true,
+            "key": "",
+            "default": null,
+            "extra": ""
+          },
+          {
+            "name": "organisation_id",
+            "type": "varchar(50)",
+            "nullable": true,
+            "key": "",
+            "default": null,
+            "extra": ""
+          }
+        ],
+        "row_count": 9381,
+        "foreign_keys": []
+      },
+      "organisations": {
+        "columns": [
+          {
+            "name": "id",
+            "type": "varchar(50)",
+            "nullable": true,
+            "key": "",
+            "default": null,
+            "extra": ""
+          },
+          {
+            "name": "created_at",
+            "type": "datetime",
+            "nullable": true,
+            "key": "",
+            "default": null,
+            "extra": ""
+          },
+          {
+            "name": "parent_vertical",
+            "type": "varchar(50)",
+            "nullable": true,
+            "key": "",
+            "default": null,
+            "extra": ""
+          }
+        ],
+        "row_count": 431,
+        "foreign_keys": []
+      },
+      "payments": {
+        "columns": [
+          {
+            "name": "id",
+            "type": "varchar(50)",
+            "nullable": true,
+            "key": "",
+            "default": null,
+            "extra": ""
+          },
+          {
+            "name": "amount",
+            "type": "double",
+            "nullable": true,
+            "key": "",
+            "default": null,
+            "extra": ""
+          },
+          {
+            "name": "currency",
+            "type": "varchar(50)",
+            "nullable": true,
+            "key": "",
+            "default": null,
+            "extra": ""
+          },
+          {
+            "name": "created_at",
+            "type": "datetime",
+            "nullable": true,
+            "key": "",
+            "default": null,
+            "extra": ""
+          },
+          {
+            "name": "source",
+            "type": "varchar(50)",
+            "nullable": true,
+            "key": "",
+            "default": null,
+            "extra": ""
+          },
+          {
+            "name": "charge_date",
+            "type": "datetime",
+            "nullable": true,
+            "key": "",
+            "default": null,
+            "extra": ""
+          },
+          {
+            "name": "mandate_id",
+            "type": "varchar(50)",
+            "nullable": true,
+            "key": "",
+            "default": null,
+            "extra": ""
+          }
+        ],
+        "row_count": 33461,
+        "foreign_keys": []
+      }
+    }
+  }
+}

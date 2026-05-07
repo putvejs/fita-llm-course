@@ -1,0 +1,36 @@
+{
+  "queries": [
+    {
+      "description": "Total revenue, payment count, and average payment amount by currency — helps understand the financial scale and mix across different currencies",
+      "sql": "-- Revenue breakdown by currency\nSELECT\n  p.currency,\n  COUNT(p.id) AS total_payments,\n  SUM(p.amount) AS total_revenue,\n  AVG(p.amount) AS avg_payment_amount,\n  MIN(p.amount) AS min_payment,\n  MAX(p.amount) AS max_payment\nFROM payments p\nGROUP BY p.currency\nORDER BY total_revenue DESC"
+    },
+    {
+      "description": "Monthly payment volume and revenue trend — identifies growth patterns and seasonal fluctuations over time",
+      "sql": "-- Monthly payment volume and revenue trend\nSELECT\n  DATE_FORMAT(p.created_at, '%Y-%m') AS month,\n  COUNT(p.id) AS payment_count,\n  SUM(p.amount) AS total_revenue,\n  AVG(p.amount) AS avg_payment_amount\nFROM payments p\nGROUP BY DATE_FORMAT(p.created_at, '%Y-%m')\nORDER BY month ASC"
+    },
+    {
+      "description": "Top 10 organisations by total payment revenue — highlights the highest-value customers driving the most income",
+      "sql": "-- Top 10 organisations by total payment revenue\nSELECT\n  o.id AS organisation_id,\n  o.parent_vertical,\n  COUNT(p.id) AS total_payments,\n  SUM(p.amount) AS total_revenue,\n  AVG(p.amount) AS avg_payment_amount\nFROM organisations o\nJOIN mandates m ON m.organisation_id = o.id\nJOIN payments p ON p.mandate_id = m.id\nGROUP BY o.id, o.parent_vertical\nORDER BY total_revenue DESC\nLIMIT 10"
+    },
+    {
+      "description": "Payment volume and revenue by industry vertical — shows which verticals contribute most to the business",
+      "sql": "-- Payment volume and revenue by parent vertical\nSELECT\n  o.parent_vertical,\n  COUNT(DISTINCT o.id) AS organisation_count,\n  COUNT(DISTINCT m.id) AS mandate_count,\n  COUNT(p.id) AS total_payments,\n  SUM(p.amount) AS total_revenue,\n  AVG(p.amount) AS avg_payment_amount\nFROM organisations o\nJOIN mandates m ON m.organisation_id = o.id\nJOIN payments p ON p.mandate_id = m.id\nGROUP BY o.parent_vertical\nORDER BY total_revenue DESC"
+    },
+    {
+      "description": "Mandate activity summary by scheme — reveals which payment schemes are most widely used and generate the most transactions",
+      "sql": "-- Mandate and payment activity broken down by scheme\nSELECT\n  m.scheme,\n  COUNT(DISTINCT m.id) AS total_mandates,\n  COUNT(DISTINCT m.organisation_id) AS organisations_using_scheme,\n  COUNT(p.id) AS total_payments,\n  SUM(p.amount) AS total_revenue,\n  AVG(p.amount) AS avg_payment_amount\nFROM mandates m\nLEFT JOIN payments p ON p.mandate_id = m.id\nGROUP BY m.scheme\nORDER BY total_payments DESC"
+    },
+    {
+      "description": "Payment source performance comparison — determines which payment sources (e.g. API, dashboard) drive the most volume and revenue",
+      "sql": "-- Payment volume and revenue by payment source\nSELECT\n  p.source,\n  COUNT(p.id) AS total_payments,\n  SUM(p.amount) AS total_revenue,\n  AVG(p.amount) AS avg_payment_amount,\n  MIN(p.amount) AS min_payment,\n  MAX(p.amount) AS max_payment\nFROM payments p\nGROUP BY p.source\nORDER BY total_revenue DESC"
+    },
+    {
+      "description": "Average days between payment creation and charge date by vertical — measures collection lag and helps optimise cash flow timing",
+      "sql": "-- Average lag between payment creation and charge date by vertical\nSELECT\n  o.parent_vertical,\n  COUNT(p.id) AS total_payments,\n  AVG(DATEDIFF(p.charge_date, p.created_at)) AS avg_days_to_charge,\n  MIN(DATEDIFF(p.charge_date, p.created_at)) AS min_days_to_charge,\n  MAX(DATEDIFF(p.charge_date, p.created_at)) AS max_days_to_charge\nFROM payments p\nJOIN mandates m ON m.id = p.mandate_id\nJOIN organisations o ON o.id = m.organisation_id\nWHERE p.charge_date IS NOT NULL\nGROUP BY o.parent_vertical\nORDER BY avg_days_to_charge DESC"
+    },
+    {
+      "description": "Organisation cohort analysis by signup month — tracks how many organisations joined each month and their cumulative mandate and payment activity",
+      "sql": "-- Organisation cohort: signups per month with mandate and payment counts\nSELECT\n  DATE_FORMAT(o.created_at, '%Y-%m') AS signup_month,\n  COUNT(DISTINCT o.id) AS new_organisations,\n  COUNT(DISTINCT m.id) AS mandates_created,\n  COUNT(p.id) AS payments_made,\n  SUM(p.amount) AS total_revenue\nFROM organisations o\nLEFT JOIN mandates m ON m.organisation_id = o.id\nLEFT JOIN payments p ON p.mandate_id = m.id\nGROUP BY DATE_FORMAT(o.created_at, '%Y-%m')\nORDER BY signup_month ASC"
+    }
+  ]
+}
