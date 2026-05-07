@@ -6,6 +6,7 @@ import json
 import os
 import re
 from anthropic import Anthropic
+from anthropic.types import TextBlock
 from utils import format_schema_for_prompt
 
 OUTPUT_DIR = "output"
@@ -53,7 +54,7 @@ Return ONLY valid JSON in this exact format:
         ],
     )
 
-    content = response.content[0].text
+    content = next(b.text for b in response.content if isinstance(b, TextBlock))
     json_match = re.search(r"\{.*\}", content, re.DOTALL)
     queries_data = json.loads(json_match.group()) if json_match else {"raw_response": content}
 

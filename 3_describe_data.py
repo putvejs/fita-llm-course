@@ -6,6 +6,7 @@ import json
 import os
 import mysql.connector
 from anthropic import Anthropic
+from anthropic.types import TextBlock
 from dotenv import load_dotenv
 from utils import format_schema_for_prompt
 
@@ -96,7 +97,7 @@ Structure the report as:
         ],
     )
 
-    description = response.content[0].text
+    description = next(b.text for b in response.content if isinstance(b, TextBlock))
 
     report_path = os.path.join(OUTPUT_DIR, "data_description.md")
     with open(report_path, "w", encoding="utf-8") as f:
