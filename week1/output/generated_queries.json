@@ -1,0 +1,36 @@
+{
+  "queries": [
+    {
+      "description": "Total revenue, payment count, and average payment amount by currency — helps understand the financial breakdown across different currencies",
+      "sql": "-- Revenue and volume metrics broken down by currency\nSELECT\n  p.currency,\n  COUNT(p.id) AS total_payments,\n  SUM(p.amount) AS total_revenue,\n  AVG(p.amount) AS avg_payment_amount,\n  MIN(p.amount) AS min_payment,\n  MAX(p.amount) AS max_payment\nFROM payments p\nGROUP BY p.currency\nORDER BY total_revenue DESC"
+    },
+    {
+      "description": "Monthly payment volume and revenue trend — identifies growth or decline patterns over time",
+      "sql": "-- Monthly aggregated payment trends\nSELECT\n  DATE_FORMAT(p.created_at, '%Y-%m') AS month,\n  COUNT(p.id) AS total_payments,\n  SUM(p.amount) AS total_revenue,\n  AVG(p.amount) AS avg_payment_amount\nFROM payments p\nGROUP BY DATE_FORMAT(p.created_at, '%Y-%m')\nORDER BY month ASC"
+    },
+    {
+      "description": "Top 10 organisations by total payment revenue — highlights the highest-value customers",
+      "sql": "-- Top 10 organisations ranked by total payment revenue\nSELECT\n  o.id AS organisation_id,\n  o.parent_vertical,\n  COUNT(p.id) AS total_payments,\n  SUM(p.amount) AS total_revenue,\n  AVG(p.amount) AS avg_payment_amount\nFROM organisations o\nJOIN mandates m ON m.organisation_id = o.id\nJOIN payments p ON p.mandate_id = m.id\nGROUP BY o.id, o.parent_vertical\nORDER BY total_revenue DESC\nLIMIT 10"
+    },
+    {
+      "description": "Payment volume and revenue by industry vertical — shows which sectors drive the most business",
+      "sql": "-- Payment performance aggregated by parent vertical (industry sector)\nSELECT\n  o.parent_vertical,\n  COUNT(DISTINCT o.id) AS organisation_count,\n  COUNT(DISTINCT m.id) AS mandate_count,\n  COUNT(p.id) AS total_payments,\n  SUM(p.amount) AS total_revenue,\n  AVG(p.amount) AS avg_payment_amount\nFROM organisations o\nJOIN mandates m ON m.organisation_id = o.id\nJOIN payments p ON p.mandate_id = m.id\nGROUP BY o.parent_vertical\nORDER BY total_revenue DESC"
+    },
+    {
+      "description": "Mandate activity summary by scheme — reveals which direct debit schemes are most actively used",
+      "sql": "-- Mandate count and associated payment metrics grouped by scheme\nSELECT\n  m.scheme,\n  COUNT(DISTINCT m.id) AS total_mandates,\n  COUNT(p.id) AS total_payments,\n  SUM(p.amount) AS total_revenue,\n  AVG(p.amount) AS avg_payment_amount,\n  COUNT(p.id) / COUNT(DISTINCT m.id) AS avg_payments_per_mandate\nFROM mandates m\nLEFT JOIN payments p ON p.mandate_id = m.id\nGROUP BY m.scheme\nORDER BY total_mandates DESC"
+    },
+    {
+      "description": "Payment source performance comparison — determines which payment sources generate the most volume and revenue",
+      "sql": "-- Revenue and volume metrics broken down by payment source\nSELECT\n  p.source,\n  COUNT(p.id) AS total_payments,\n  SUM(p.amount) AS total_revenue,\n  AVG(p.amount) AS avg_payment_amount,\n  MIN(p.charge_date) AS earliest_charge,\n  MAX(p.charge_date) AS latest_charge\nFROM payments p\nGROUP BY p.source\nORDER BY total_revenue DESC"
+    },
+    {
+      "description": "Average days between payment creation and charge date by vertical — measures collection lag across industry sectors",
+      "sql": "-- Average lead time (days) between payment creation and charge date per vertical\nSELECT\n  o.parent_vertical,\n  COUNT(p.id) AS total_payments,\n  AVG(DATEDIFF(p.charge_date, p.created_at)) AS avg_days_to_charge,\n  MIN(DATEDIFF(p.charge_date, p.created_at)) AS min_days_to_charge,\n  MAX(DATEDIFF(p.charge_date, p.created_at)) AS max_days_to_charge\nFROM payments p\nJOIN mandates m ON p.mandate_id = m.id\nJOIN organisations o ON m.organisation_id = o.id\nWHERE p.charge_date IS NOT NULL\nGROUP BY o.parent_vertical\nORDER BY avg_days_to_charge DESC"
+    },
+    {
+      "description": "New organisations and mandates onboarded per quarter — tracks growth in platform adoption over time",
+      "sql": "-- Quarterly onboarding trend: new organisations and mandates created\nSELECT\n  CONCAT(YEAR(o.created_at), '-Q', QUARTER(o.created_at)) AS quarter,\n  COUNT(DISTINCT o.id) AS new_organisations,\n  COUNT(DISTINCT m.id) AS new_mandates\nFROM organisations o\nLEFT JOIN mandates m\n  ON m.organisation_id = o.id\n  AND YEAR(m.created_at) = YEAR(o.created_at)\n  AND QUARTER(m.created_at) = QUARTER(o.created_at)\nGROUP BY CONCAT(YEAR(o.created_at), '-Q', QUARTER(o.created_at))\nORDER BY quarter ASC"
+    }
+  ]
+}

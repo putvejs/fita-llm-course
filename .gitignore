@@ -1,9 +1,6 @@
 .env
 __pycache__/
 *.pyc
-context.json
-generated_queries.json
-query_results.json
-week1/output/
-!week1/output/data_description.md
-!week2/output/context.json
+/context.json
+/generated_queries.json
+/query_results.json
