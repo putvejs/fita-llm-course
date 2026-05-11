@@ -1,0 +1,6 @@
+mysql-connector-python
+anthropic
+python-dotenv
+matplotlib
+pandas
+numpy

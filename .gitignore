@@ -3,6 +3,7 @@ __pycache__/
 *.pyc
 output/
 !week1/output/data_description.md
+!week2/output/report.html
 context.json
 generated_queries.json
 query_results.json
