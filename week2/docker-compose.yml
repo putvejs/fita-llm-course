@@ -1,0 +1,24 @@
+services:
+
+  # One-shot: extract schema, generate plan, run SQL, produce HTML + PDF report
+  pipeline:
+    build:
+      context: ..
+      dockerfile: week2/Dockerfile
+    env_file: .env
+    volumes:
+      - ./output:/app/output
+    command: python main.py
+
+  # Always-on: interactive dashboard with live data filtering
+  web:
+    build:
+      context: ..
+      dockerfile: week2/Dockerfile
+    env_file: .env
+    ports:
+      - "5002:5002"
+    volumes:
+      - ./output:/app/output
+    command: python app.py
+    restart: unless-stopped
