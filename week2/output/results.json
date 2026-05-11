@@ -1,0 +1,93 @@
+[
+  {
+    "index": 0,
+    "title": "Monthly Payment Volume & Revenue Trend",
+    "chart_type": "line",
+    "description": "Tracks total payment count and summed amount over time to identify growth trends, seasonality, and revenue momentum across the business.",
+    "x_label": "Month",
+    "y_label": "Total Payment Amount",
+    "sql": "SELECT DATE_FORMAT(charge_date, '%Y-%m') AS month, SUM(amount) AS total_amount, COUNT(id) AS payment_count FROM payments GROUP BY DATE_FORMAT(charge_date, '%Y-%m') ORDER BY month LIMIT 30",
+    "rows_count": 24,
+    "chart_path": "output\\charts\\01_monthly_payment_volume_revenue_trend.png",
+    "insights": "- **Explosive launch growth:** Revenue surged from $4,689 in April 2018 to $347,635 by August 2018 — a **74x increase in just 4 months** — with payment count growing from 54 to 2,670 transactions.\n\n- **Mid-summer dip then recovery:** September 2018 saw a notable pullback (-23% revenue, -1,082 payments vs. August), but October rebounded sharply to $545,743 across 4,699 payments — the strongest month yet in the dataset shown.\n\n- **Strong momentum into 2019:** January 2019 reached $828,858 and 6,182 payments, representing a **52% revenue jump** over October 2018's previous peak, signaling sustained upward trajectory heading into the new year.",
+    "error": null
+  },
+  {
+    "index": 1,
+    "title": "Payment Volume by Industry Vertical",
+    "chart_type": "horizontal_bar",
+    "description": "Reveals which industry verticals generate the most payment activity, helping prioritize sales and support resources toward the highest-value segments.",
+    "x_label": "Total Payment Amount",
+    "y_label": "Industry Vertical",
+    "sql": "SELECT o.parent_vertical AS `Industry Vertical`, SUM(p.amount) AS `Total Payment Amount`\nFROM payments p\nJOIN mandates m ON p.mandate_id = m.id\nJOIN organisations o ON m.organisation_id = o.id\nGROUP BY o.parent_vertical\nORDER BY `Total Payment Amount` DESC\nLIMIT 30",
+    "rows_count": 7,
+    "chart_path": "output\\charts\\02_payment_volume_by_industry_vertical.png",
+    "insights": "- **Digital Services, Media & Telecoms dominates** with £1.19M in payment volume, accounting for ~29% of total activity — nearly 1.5x the second-highest vertical and the clear priority for sales investment.\n\n- **Top 3 verticals (Digital Services, Professional/Financial Services, Sports & Fitness) contribute ~67%** of total payment volume (£4.28M combined), suggesting resources should be heavily concentrated here.\n\n- **Healthcare and Societies & Clubs are underperforming** relative to their market potential, generating £368K and £171K respectively — representing growth opportunities with targeted outreach or product improvements.",
+    "error": null
+  },
+  {
+    "index": 2,
+    "title": "Mandate Scheme Distribution",
+    "chart_type": "pie",
+    "description": "Shows the breakdown of mandates by payment scheme (e.g. BACS, SEPA) to understand scheme adoption and exposure to scheme-specific regulatory or operational risk.",
+    "x_label": "Labels",
+    "y_label": "Values",
+    "sql": "SELECT scheme, COUNT(id) AS mandate_count FROM mandates GROUP BY scheme ORDER BY mandate_count DESC LIMIT 30",
+    "rows_count": 2,
+    "chart_path": "output\\charts\\03_mandate_scheme_distribution.png",
+    "insights": "- BACS dominates mandate volume with 9,017 mandates (96.1% of total), indicating heavy concentration in UK-based direct debit infrastructure and significant exposure to BACS-specific regulatory changes.\n\n- SEPA Core accounts for just 364 mandates (3.9%), suggesting limited European market penetration or early-stage expansion into eurozone payment corridors.\n\n- The 25:1 ratio between BACS and SEPA Core mandates highlights a near single-scheme dependency, posing operational risk if BACS experiences disruption—diversification into SEPA or other schemes should be evaluated as a resilience measure.",
+    "error": null
+  },
+  {
+    "index": 3,
+    "title": "New Mandates Created per Month",
+    "chart_type": "line",
+    "description": "Monitors mandate acquisition growth over time to assess onboarding health and whether the customer base is expanding, plateauing, or contracting.",
+    "x_label": "Month",
+    "y_label": "New Mandates",
+    "sql": "SELECT DATE_FORMAT(created_at, '%Y-%m') AS month, COUNT(id) AS new_mandates FROM mandates GROUP BY DATE_FORMAT(created_at, '%Y-%m') ORDER BY month LIMIT 30",
+    "rows_count": 13,
+    "chart_path": "output\\charts\\04_new_mandates_created_per_month.png",
+    "insights": "- **Peak acquisition occurred in June 2018** with 1,183 new mandates, followed by a sharp 40% decline to 701 mandates by October 2018, signaling a post-launch correction after rapid early growth.\n\n- **Onboarding ramped explosively** from just 1 mandate in March 2018 to 990 in May — a 98,900% surge in two months — indicating a major product launch or market entry event drove initial volume.\n\n- **A recovery trend emerged late 2018**, with mandates rebounding from the October trough of 701 back to 1,004 by December, suggesting the customer base stabilized rather than contracted after the mid-year peak.",
+    "error": null
+  },
+  {
+    "index": 4,
+    "title": "Average Payment Amount by Payment Source",
+    "chart_type": "bar",
+    "description": "Compares average transaction value across different payment sources to identify which channels drive high-value payments versus high-volume low-value ones.",
+    "x_label": "Payment Source",
+    "y_label": "Average Payment Amount",
+    "sql": "SELECT source, AVG(amount) AS avg_amount, COUNT(id) AS payment_count FROM payments GROUP BY source ORDER BY avg_amount DESC LIMIT 30",
+    "rows_count": 3,
+    "chart_path": "output\\charts\\05_average_payment_amount_by_payment_source.png",
+    "insights": "- **API drives highest-value transactions**: API payments average $185.34, approximately 18% higher than dashboard ($156.50) and 131% higher than app ($80.39), despite being the lowest-volume channel at only 2,316 transactions.\n\n- **Dashboard dominates volume with mid-tier value**: Dashboard processes the most payments (17,693 — nearly 57% of total transactions) at a mid-range average of $156.50, suggesting it serves as the primary operational channel.\n\n- **App is high-volume but low-value**: The app handles 13,452 transactions but yields the lowest average at $80.39 — roughly half the API average — indicating app users make frequent, smaller-ticket payments compared to API/dashboard users.",
+    "error": null
+  },
+  {
+    "index": 5,
+    "title": "Top 15 Organisations by Total Payment Revenue",
+    "chart_type": "horizontal_bar",
+    "description": "Identifies the highest-revenue organisations to support key account management, churn risk monitoring, and upsell targeting for the most critical clients.",
+    "x_label": "Total Revenue",
+    "y_label": "Organisation ID",
+    "sql": "SELECT o.id AS organisation_id, SUM(p.amount) AS total_revenue\nFROM payments p\nJOIN mandates m ON p.mandate_id = m.id\nJOIN organisations o ON m.organisation_id = o.id\nGROUP BY o.id\nORDER BY total_revenue DESC\nLIMIT 15",
+    "rows_count": 15,
+    "chart_path": "output\\charts\\06_top_15_organisations_by_total_payment_re.png",
+    "insights": "- The top organisation (cb4fb774) dominates with **$305,347** in revenue — nearly 19% more than the second-ranked (6c87af1f) at **$256,617**, making it the highest-priority account for retention and relationship management.\n\n- A significant revenue cliff exists between rank 8 (**$143,469**) and rank 9 (**$112,164**) — a **$31,305 drop (22%)** — suggesting a natural tier break that can segment key accounts from secondary targets.\n\n- The top 3 organisations collectively generate **$798,650**, representing a concentrated revenue risk; losing any single one would materially impact overall payment revenue and warrants dedicated churn monitoring.",
+    "error": null
+  },
+  {
+    "index": 6,
+    "title": "Payment Frequency vs. Average Amount per Organisation",
+    "chart_type": "scatter",
+    "description": "Plots each organisation by how often they pay versus their average transaction size to segment clients into high-frequency/low-value vs. low-frequency/high-value buckets for tailored strategy.",
+    "x_label": "Number of Payments",
+    "y_label": "Average Payment Amount",
+    "sql": "SELECT\n  o.id AS organisation_id,\n  COUNT(p.id) AS payment_count,\n  AVG(p.amount) AS avg_amount\nFROM payments p\nJOIN mandates m ON p.mandate_id = m.id\nJOIN organisations o ON m.organisation_id = o.id\nGROUP BY o.id\nORDER BY payment_count DESC\nLIMIT 30",
+    "rows_count": 30,
+    "chart_path": "output\\charts\\07_payment_frequency_vs_average_amount_per_.png",
+    "insights": "- **Dominant outlier:** Organisation `6c87af1fc07f4a94` leads in payment frequency at 6,612 transactions but averages only $38.81 — a classic high-frequency/low-value profile requiring volume-based, automated engagement strategies.\n\n- **High-value opportunity:** Organisation `e00a57ec92dc42f9` combines relatively high frequency (930 payments) with the largest average transaction of $224.68 — nearly 6× the top payer's average — making it a priority account for dedicated relationship management.\n\n- **Mid-tier cluster:** Organisations ranked 3rd–5th (counts 939–1,924) all average $36–$44, suggesting a homogeneous low-value segment despite moderate frequency, where standardised pricing or upsell campaigns could meaningfully lift revenue per transaction.",
+    "error": null
+  }
+]
