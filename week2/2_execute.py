@@ -12,6 +12,7 @@ import matplotlib.ticker as ticker
 
 import mysql.connector
 from anthropic import Anthropic
+from anthropic.types import TextBlock
 
 from utils import extract_sql, format_schema_for_prompt, slugify
 
@@ -73,7 +74,7 @@ Rules:
             system="You are a MySQL expert. Return only valid MySQL SELECT statements.",
             messages=messages,
         )
-        reply_text = response.content[0].text
+        reply_text = next(b.text for b in response.content if isinstance(b, TextBlock))
         sql = extract_sql(reply_text)
 
         if not sql:
@@ -198,7 +199,7 @@ Format each bullet starting with "- ".""",
             }
         ],
     )
-    return response.content[0].text.strip()
+    return next(b.text for b in response.content if isinstance(b, TextBlock)).strip()
 
 
 def execute_plan() -> list[dict]:

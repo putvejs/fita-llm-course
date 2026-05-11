@@ -6,9 +6,11 @@ import json
 import os
 import re
 from datetime import datetime
+from typing import Any
 
 import mysql.connector
 from anthropic import Anthropic
+from anthropic.types import TextBlock
 
 from utils import format_schema_for_prompt
 
@@ -27,7 +29,7 @@ def explore_schema() -> dict:
     conn = mysql.connector.connect(
         host=DB_HOST, port=DB_PORT, user=DB_USER, password=DB_PASS
     )
-    cursor = conn.cursor()
+    cursor: Any = conn.cursor()
 
     cursor.execute("SHOW DATABASES")
     user_dbs = [r[0] for r in cursor.fetchall() if r[0] not in SYSTEM_DBS]
@@ -46,7 +48,8 @@ def explore_schema() -> dict:
             ]
             try:
                 cursor.execute(f"SELECT COUNT(*) FROM `{table_name}`")
-                row_count = cursor.fetchone()[0]
+                row = cursor.fetchone()
+                row_count = row[0] if row else None
             except Exception:
                 row_count = None
 
@@ -129,7 +132,7 @@ Return ONLY valid JSON:
         ],
     )
 
-    content = response.content[0].text
+    content = next(b.text for b in response.content if isinstance(b, TextBlock))
     match = re.search(r"\{.*\}", content, re.DOTALL)
     plan = json.loads(match.group()) if match else {"plan": []}
 
