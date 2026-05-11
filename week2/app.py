@@ -33,6 +33,14 @@ def q(conn, sql: str, params: tuple = ()):
     return rows
 
 
+def _next_month(ym: str) -> str:
+    y, m = map(int, ym.split("-"))
+    m += 1
+    if m > 12:
+        m, y = 1, y + 1
+    return f"{y:04d}-{m:02d}-01"
+
+
 def build_where(currency=None, vertical=None, source=None, start=None, end=None):
     conds, params = [], []
     if currency and currency != "ALL":
@@ -45,11 +53,11 @@ def build_where(currency=None, vertical=None, source=None, start=None, end=None)
         conds.append("p.source = %s")
         params.append(source)
     if start:
-        conds.append("DATE_FORMAT(p.created_at, '%%Y-%%m') >= %s")
-        params.append(start)
+        conds.append("p.created_at >= %s")
+        params.append(start + "-01")
     if end:
-        conds.append("DATE_FORMAT(p.created_at, '%%Y-%%m') <= %s")
-        params.append(end)
+        conds.append("p.created_at < %s")
+        params.append(_next_month(end))
     where = ("WHERE " + " AND ".join(conds)) if conds else ""
     return where, tuple(params)
 
@@ -96,8 +104,8 @@ def summary():
     conn = get_conn()
     row = q(conn, f"""
         SELECT COUNT(*) AS total_payments,
-               ROUND(SUM(p.amount / 100), 2) AS total_revenue,
-               ROUND(AVG(p.amount / 100), 2) AS avg_payment,
+               ROUND(SUM(p.amount ), 2) AS total_revenue,
+               ROUND(AVG(p.amount ), 2) AS avg_payment,
                COUNT(DISTINCT m.organisation_id) AS active_orgs,
                COUNT(DISTINCT p.mandate_id) AS active_mandates
         FROM payments p
@@ -114,14 +122,14 @@ def revenue_over_time():
     where, params = build_where(*args())
     conn = get_conn()
     rows = q(conn, f"""
-        SELECT DATE_FORMAT(p.created_at, '%%Y-%%m') AS month,
+        SELECT DATE_FORMAT(p.created_at, '%Y-%m') AS month,
                COUNT(*) AS payment_count,
-               ROUND(SUM(p.amount / 100), 2) AS revenue
+               ROUND(SUM(p.amount ), 2) AS revenue
         FROM payments p
         JOIN mandates m ON p.mandate_id = m.id
         JOIN organisations o ON m.organisation_id = o.id
         {where}
-        GROUP BY DATE_FORMAT(p.created_at, '%%Y-%%m')
+        GROUP BY DATE_FORMAT(p.created_at, '%Y-%m')
         ORDER BY month
     """, params)
     conn.close()
@@ -135,7 +143,7 @@ def revenue_by_vertical():
     conn = get_conn()
     rows = q(conn, f"""
         SELECT o.parent_vertical AS vertical,
-               ROUND(SUM(p.amount / 100), 2) AS revenue,
+               ROUND(SUM(p.amount ), 2) AS revenue,
                COUNT(*) AS payment_count
         FROM payments p
         JOIN mandates m ON p.mandate_id = m.id
@@ -156,8 +164,8 @@ def source_breakdown():
     rows = q(conn, f"""
         SELECT p.source,
                COUNT(*) AS payment_count,
-               ROUND(SUM(p.amount / 100), 2) AS revenue,
-               ROUND(AVG(p.amount / 100), 2) AS avg_amount
+               ROUND(SUM(p.amount ), 2) AS revenue,
+               ROUND(AVG(p.amount ), 2) AS avg_amount
         FROM payments p
         JOIN mandates m ON p.mandate_id = m.id
         JOIN organisations o ON m.organisation_id = o.id
@@ -176,7 +184,7 @@ def avg_value_by_vertical():
     conn = get_conn()
     rows = q(conn, f"""
         SELECT o.parent_vertical AS vertical,
-               ROUND(AVG(p.amount / 100), 2) AS avg_amount,
+               ROUND(AVG(p.amount ), 2) AS avg_amount,
                COUNT(*) AS payment_count
         FROM payments p
         JOIN mandates m ON p.mandate_id = m.id

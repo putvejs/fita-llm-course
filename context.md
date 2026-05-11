@@ -53,14 +53,14 @@ Data spans **March 2018 – March 2020** and operates in GBP (BACS) and EUR (SEP
 | Column | Type | Notes |
 |---|---|---|
 | `id` | varchar(50) | Unique payment identifier |
-| `amount` | double | Payment amount in minor units (pence / cents) |
+| `amount` | double | Payment amount in pounds / euros (not pence) |
 | `currency` | varchar(50) | `GBP` or `EUR` |
 | `created_at` | datetime | When the payment was created |
 | `source` | varchar(50) | `dashboard`, `app`, or `api` |
 | `charge_date` | datetime | When funds are collected from the customer |
 | `mandate_id` | varchar(50) | FK → mandates.id |
 
-> **Note:** `amount` is stored in pence/cents. Divide by 100 for display values (e.g. £125.78 avg).
+> **Note:** `amount` is stored as actual currency units (pounds/euros), not pence/cents. Use directly.
 
 ---
 
@@ -90,4 +90,4 @@ organisations (431)
 
 - Server runs with `ONLY_FULL_GROUP_BY` enabled — every non-aggregated `SELECT` column must appear verbatim in `GROUP BY`
 - Use `DATE_FORMAT(created_at, '%Y-%m')` for month-level grouping and include it in `GROUP BY`
-- Amounts are stored as `double` — cast to `DECIMAL(10,2)` for formatted output
+- Amounts are stored as `double` in actual currency units (not pence) — cast to `DECIMAL(10,2)` for formatted output
