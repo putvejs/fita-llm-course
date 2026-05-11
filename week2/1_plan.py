@@ -1,6 +1,6 @@
 """
-Step 1: Extract MySQL schema and use Claude to generate a visualization plan.
-Outputs: output/context.json, output/plan.json
+Step 1: Read context.md and use Claude to generate a visualization plan.
+Outputs: output/plan.md, output/plan.json
 """
 import json
 import os
@@ -12,7 +12,6 @@ import mysql.connector
 from anthropic import Anthropic
 from anthropic.types import TextBlock
 
-from utils import format_schema_for_prompt
 
 DB_HOST = os.getenv("DB_HOST")
 DB_PORT = int(os.getenv("DB_PORT", 3306))
@@ -21,6 +20,12 @@ DB_PASS = os.getenv("DB_PASS")
 
 SYSTEM_DBS = {"information_schema", "mysql", "performance_schema", "sys"}
 OUTPUT_DIR = "output"
+CONTEXT_MD = os.path.join(os.path.dirname(__file__), "..", "context.md")
+
+
+def _read_context_md() -> str:
+    with open(CONTEXT_MD, encoding="utf-8") as f:
+        return f.read()
 
 
 def explore_schema() -> dict:
@@ -90,8 +95,11 @@ def explore_schema() -> dict:
     return context
 
 
-def generate_plan(context: dict) -> dict:
-    schema_text = format_schema_for_prompt(context)
+def generate_plan() -> dict:
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
+
+    context_text = _read_context_md()
+
     client = Anthropic()
 
     response = client.messages.create(
@@ -101,11 +109,11 @@ def generate_plan(context: dict) -> dict:
         messages=[
             {
                 "role": "user",
-                "content": f"""Based on this MySQL database schema, create a visualization plan with 5-7 charts
+                "content": f"""Based on the dataset context below, create a visualization plan with 5-7 charts
 that reveal the most important business insights.
 
-SCHEMA:
-{schema_text}
+CONTEXT:
+{context_text}
 
 For each chart specify:
 - title: concise chart title
@@ -136,8 +144,12 @@ Return ONLY valid JSON:
     match = re.search(r"\{.*\}", content, re.DOTALL)
     plan = json.loads(match.group()) if match else {"plan": []}
 
+    # Save machine-readable plan
     with open(os.path.join(OUTPUT_DIR, "plan.json"), "w", encoding="utf-8") as f:
         json.dump(plan, f, indent=2, ensure_ascii=False)
+
+    # Save human-readable plan.md
+    _write_plan_md(plan)
 
     print(f"[Step 1] Visualization plan ({len(plan.get('plan', []))} charts):")
     for i, item in enumerate(plan.get("plan", []), 1):
@@ -146,9 +158,39 @@ Return ONLY valid JSON:
     return plan
 
 
+def _write_plan_md(plan: dict) -> None:
+    lines = [
+        "# Visualization Plan",
+        "",
+        f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M')}  ",
+        f"Context: [context.md](../context.md)",
+        "",
+    ]
+
+    for i, item in enumerate(plan.get("plan", []), 1):
+        lines += [
+            "---",
+            "",
+            f"## {i}. {item['title']}",
+            "",
+            f"**Chart type:** `{item['chart_type']}`  ",
+            f"**X axis:** {item['x_label']}  ",
+            f"**Y axis:** {item['y_label']}",
+            "",
+            f"{item['description']}",
+            "",
+            f"> **SQL hint:** {item['sql_hint']}",
+            "",
+        ]
+
+    with open(os.path.join(OUTPUT_DIR, "plan.md"), "w", encoding="utf-8") as f:
+        f.write("\n".join(lines))
+
+    print(f"[Step 1] Plan saved -> output/plan.md")
+
+
 if __name__ == "__main__":
     from dotenv import load_dotenv
 
     load_dotenv()
-    ctx = explore_schema()
-    generate_plan(ctx)
+    generate_plan()

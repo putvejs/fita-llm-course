@@ -1,60 +1,60 @@
 {
   "plan": [
     {
-      "title": "Monthly Payment Volume & Revenue Trend",
-      "description": "Tracks total payment count and summed amount over time to identify growth trends, seasonality, and revenue momentum across the business.",
+      "title": "Monthly Payment Volume & Revenue Trend (Mar 2018 – Mar 2020)",
+      "description": "Tracks how total payment count and GBP revenue have grown over time, revealing seasonality, growth phases, and any revenue dips that need attention.",
       "chart_type": "line",
       "x_label": "Month",
-      "y_label": "Total Payment Amount",
-      "sql_hint": "SELECT DATE_FORMAT(charge_date, '%Y-%m') AS month, SUM(amount) AS total_amount, COUNT(id) AS payment_count FROM payments GROUP BY month ORDER BY month"
+      "y_label": "Total Revenue (£)",
+      "sql_hint": "JOIN payments → mandates → organisations; GROUP BY DATE_FORMAT(payments.created_at, '%Y-%m'); aggregate COUNT(*) and SUM(amount/100) WHERE currency='GBP'; order by month ascending"
     },
     {
-      "title": "Payment Volume by Industry Vertical",
-      "description": "Reveals which industry verticals generate the most payment activity, helping prioritize sales and support resources toward the highest-value segments.",
+      "title": "Revenue by Industry Vertical",
+      "description": "Compares total GBP revenue contributed by each industry vertical to identify the highest-value customer segments and guide sales/marketing prioritisation.",
       "chart_type": "horizontal_bar",
-      "x_label": "Total Payment Amount",
+      "x_label": "Total Revenue (£)",
       "y_label": "Industry Vertical",
-      "sql_hint": "JOIN payments → mandates → organisations; GROUP BY organisations.parent_vertical; SUM(payments.amount) ORDER BY total DESC"
+      "sql_hint": "JOIN payments → mandates → organisations; GROUP BY organisations.parent_vertical; aggregate SUM(payments.amount/100) WHERE currency='GBP'; order by revenue descending"
     },
     {
-      "title": "Mandate Scheme Distribution",
-      "description": "Shows the breakdown of mandates by payment scheme (e.g. BACS, SEPA) to understand scheme adoption and exposure to scheme-specific regulatory or operational risk.",
-      "chart_type": "pie",
-      "x_label": "Labels",
-      "y_label": "Values",
-      "sql_hint": "SELECT scheme, COUNT(id) AS mandate_count FROM mandates GROUP BY scheme"
+      "title": "Payment Count by Industry Vertical",
+      "description": "Shows transaction volume per vertical so that high-volume but lower-value verticals (e.g. Sports & Fitness) can be distinguished from high-value, lower-volume ones (e.g. Digital Services).",
+      "chart_type": "bar",
+      "x_label": "Industry Vertical",
+      "y_label": "Number of Payments",
+      "sql_hint": "JOIN payments → mandates → organisations; GROUP BY organisations.parent_vertical; aggregate COUNT(payments.id); order by count descending"
     },
     {
-      "title": "New Mandates Created per Month",
-      "description": "Monitors mandate acquisition growth over time to assess onboarding health and whether the customer base is expanding, plateauing, or contracting.",
-      "chart_type": "line",
-      "x_label": "Month",
-      "y_label": "New Mandates",
-      "sql_hint": "SELECT DATE_FORMAT(created_at, '%Y-%m') AS month, COUNT(id) AS new_mandates FROM mandates GROUP BY month ORDER BY month"
-    },
-    {
-      "title": "Average Payment Amount by Payment Source",
-      "description": "Compares average transaction value across different payment sources to identify which channels drive high-value payments versus high-volume low-value ones.",
+      "title": "Payment Source Mix: Volume vs Revenue Share",
+      "description": "Compares dashboard, app, and API channels across both payment count and total revenue to reveal which integration channel drives the most value and where to invest in tooling.",
       "chart_type": "bar",
       "x_label": "Payment Source",
-      "y_label": "Average Payment Amount",
-      "sql_hint": "SELECT source, AVG(amount) AS avg_amount, COUNT(id) AS payment_count FROM payments GROUP BY source ORDER BY avg_amount DESC"
+      "y_label": "Total Revenue (£)",
+      "sql_hint": "FROM payments; GROUP BY source; aggregate COUNT(*) and SUM(amount/100) WHERE currency='GBP'; returns three rows: dashboard, app, api"
     },
     {
-      "title": "Top 15 Organisations by Total Payment Revenue",
-      "description": "Identifies the highest-revenue organisations to support key account management, churn risk monitoring, and upsell targeting for the most critical clients.",
+      "title": "Mandate Productivity by Scheme (Avg Payments per Mandate)",
+      "description": "Contrasts BACS and SEPA_CORE mandates on average payments generated per mandate, quantifying the 30% productivity premium of SEPA and informing scheme expansion decisions.",
+      "chart_type": "bar",
+      "x_label": "Payment Scheme",
+      "y_label": "Avg Payments per Mandate",
+      "sql_hint": "JOIN payments → mandates; GROUP BY mandates.scheme; aggregate COUNT(payments.id) / COUNT(DISTINCT mandates.id) as avg_payments; returns BACS and SEPA_CORE rows"
+    },
+    {
+      "title": "Average Payment Value by Industry Vertical",
+      "description": "Reveals which verticals command the highest average transaction size, helping prioritise upsell efforts and identify verticals with premium pricing power.",
       "chart_type": "horizontal_bar",
-      "x_label": "Total Revenue",
-      "y_label": "Organisation ID",
-      "sql_hint": "JOIN payments → mandates → organisations; GROUP BY organisations.id; SUM(payments.amount) ORDER BY total DESC LIMIT 15"
+      "x_label": "Average Payment Value (£)",
+      "y_label": "Industry Vertical",
+      "sql_hint": "JOIN payments → mandates → organisations; GROUP BY organisations.parent_vertical; aggregate AVG(payments.amount/100) WHERE currency='GBP'; order by avg value descending"
     },
     {
-      "title": "Payment Frequency vs. Average Amount per Organisation",
-      "description": "Plots each organisation by how often they pay versus their average transaction size to segment clients into high-frequency/low-value vs. low-frequency/high-value buckets for tailored strategy.",
-      "chart_type": "scatter",
-      "x_label": "Number of Payments",
-      "y_label": "Average Payment Amount",
-      "sql_hint": "JOIN payments → mandates → organisations; GROUP BY organisations.id; SELECT COUNT(payments.id) AS payment_count, AVG(payments.amount) AS avg_amount per organisation"
+      "title": "New Mandate Creation vs New Organisation Onboarding Over Time",
+      "description": "Overlays monthly new mandate authorisations against new organisation sign-ups to assess whether existing merchants are expanding their customer base or whether growth is purely driven by new merchant acquisition.",
+      "chart_type": "line",
+      "x_label": "Month",
+      "y_label": "Count",
+      "sql_hint": "Two series: (1) SELECT DATE_FORMAT(created_at,'%Y-%m'), COUNT(*) FROM mandates GROUP BY DATE_FORMAT(created_at,'%Y-%m'); (2) SELECT DATE_FORMAT(created_at,'%Y-%m'), COUNT(*) FROM organisations GROUP BY DATE_FORMAT(created_at,'%Y-%m'); join on month"
     }
   ]
 }

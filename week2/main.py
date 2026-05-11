@@ -15,8 +15,8 @@ def run():
     step3 = importlib.import_module("3_report")
 
     print("=== Step 1: Extract schema + generate visualization plan ===")
-    context = step1.explore_schema()
-    step1.generate_plan(context)
+    step1.explore_schema()
+    step1.generate_plan()
 
     print("\n=== Step 2: Execute plan — SQL, charts, insights ===")
     step2.execute_plan()
