@@ -1,11 +1,20 @@
 """
-Step 3: Combine all charts and insights into a self-contained HTML report.
-Output: output/report.html
+Step 3: Combine all charts and insights into a self-contained HTML report and PDF.
+Outputs: output/report.html, output/report.pdf
 """
 import base64
 import json
 import os
 from datetime import datetime
+
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import cm
+from reportlab.platypus import (
+    Image, PageBreak, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle,
+)
+from reportlab.lib.enums import TA_LEFT, TA_CENTER
 
 OUTPUT_DIR = "output"
 
@@ -162,9 +171,147 @@ code{{color:#2d6a9f}}
     with open(report_path, "w", encoding="utf-8") as f:
         f.write(html)
 
-    print(f"[Step 3] Report saved → {report_path}  ({len(html) // 1024} KB)")
+    print(f"[Step 3] Report saved -> {report_path}  ({len(html) // 1024} KB)")
     return report_path
+
+
+def generate_pdf() -> str:
+    with open(os.path.join(OUTPUT_DIR, "results.json"), encoding="utf-8") as f:
+        results = json.load(f)
+
+    pdf_path = os.path.join(OUTPUT_DIR, "report.pdf")
+    doc = SimpleDocTemplate(
+        pdf_path,
+        pagesize=A4,
+        leftMargin=1.8 * cm,
+        rightMargin=1.8 * cm,
+        topMargin=2 * cm,
+        bottomMargin=2 * cm,
+    )
+
+    W = A4[0] - 3.6 * cm  # usable width
+
+    base = getSampleStyleSheet()
+    title_style = ParagraphStyle(
+        "ReportTitle",
+        parent=base["Title"],
+        fontSize=22,
+        textColor=colors.HexColor("#1a1a2e"),
+        spaceAfter=6,
+    )
+    meta_style = ParagraphStyle(
+        "Meta",
+        parent=base["Normal"],
+        fontSize=9,
+        textColor=colors.HexColor("#888888"),
+        spaceAfter=20,
+    )
+    chart_title_style = ParagraphStyle(
+        "ChartTitle",
+        parent=base["Heading2"],
+        fontSize=13,
+        textColor=colors.HexColor("#1a1a2e"),
+        spaceBefore=4,
+        spaceAfter=2,
+    )
+    desc_style = ParagraphStyle(
+        "Desc",
+        parent=base["Normal"],
+        fontSize=9,
+        textColor=colors.HexColor("#666666"),
+        spaceAfter=10,
+    )
+    bullet_style = ParagraphStyle(
+        "Bullet",
+        parent=base["Normal"],
+        fontSize=9,
+        textColor=colors.HexColor("#333333"),
+        leftIndent=14,
+        spaceBefore=2,
+        spaceAfter=2,
+        bulletIndent=4,
+        bulletText="▸",
+    )
+    sql_style = ParagraphStyle(
+        "SQL",
+        parent=base["Code"],
+        fontSize=7,
+        textColor=colors.HexColor("#2d6a9f"),
+        backColor=colors.HexColor("#f8f9fa"),
+        leftIndent=8,
+        rightIndent=8,
+        spaceBefore=4,
+        spaceAfter=4,
+    )
+
+    ACCENT = colors.HexColor("#4C72B0")
+    generated_at = datetime.now().strftime("%Y-%m-%d %H:%M")
+    total_ok = sum(1 for r in results if not r.get("error"))
+
+    story = [
+        Spacer(1, 0.5 * cm),
+        Paragraph("Data Visualization Report", title_style),
+        Paragraph(f"Generated: {generated_at} &nbsp;·&nbsp; {total_ok}/{len(results)} charts", meta_style),
+    ]
+
+    # Thin divider line via a 1-row table
+    story.append(
+        Table([[""]], colWidths=[W], rowHeights=[2],
+              style=TableStyle([("BACKGROUND", (0, 0), (-1, -1), ACCENT),
+                                ("LINEABOVE", (0, 0), (-1, -1), 0, colors.white)]))
+    )
+    story.append(Spacer(1, 0.6 * cm))
+
+    for i, r in enumerate(results, 1):
+        # Number + title header row
+        num_para = Paragraph(f'<font color="white"><b>{i}</b></font>',
+                             ParagraphStyle("Num", parent=base["Normal"], fontSize=10,
+                                            alignment=TA_CENTER))
+        num_cell = Table([[num_para]], colWidths=[0.7 * cm], rowHeights=[0.7 * cm],
+                         style=TableStyle([("BACKGROUND", (0, 0), (-1, -1), ACCENT),
+                                           ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                                           ("ALIGN", (0, 0), (-1, -1), "CENTRE"),
+                                           ("ROUNDEDCORNERS", [4, 4, 4, 4])]))
+
+        header = Table(
+            [[num_cell, Paragraph(r["title"], chart_title_style)]],
+            colWidths=[0.9 * cm, W - 0.9 * cm],
+            style=TableStyle([("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                               ("LEFTPADDING", (1, 0), (1, 0), 8)]),
+        )
+        story.append(header)
+        story.append(Paragraph(r.get("description", ""), desc_style))
+
+        # Chart image
+        chart_path = r.get("chart_path", "")
+        if chart_path and os.path.exists(chart_path):
+            img = Image(chart_path, width=W, height=W * 0.5)
+            story.append(img)
+        elif r.get("error"):
+            story.append(Paragraph(f"⚠ {r['error']}", desc_style))
+
+        # Insights bullets
+        if r.get("insights"):
+            story.append(Spacer(1, 0.25 * cm))
+            for line in r["insights"].split("\n"):
+                text = line.lstrip("-•* ").strip()
+                if text:
+                    story.append(Paragraph(text, bullet_style))
+
+        # SQL (collapsed in HTML, shown small in PDF)
+        if r.get("sql"):
+            sql_lines = r["sql"].replace("&", "&amp;").replace("<", "&lt;")
+            story.append(Spacer(1, 0.2 * cm))
+            story.append(Paragraph(sql_lines, sql_style))
+
+        if i < len(results):
+            story.append(PageBreak())
+
+    doc.build(story)
+    print(f"[Step 3] PDF saved -> {pdf_path}")
+    return pdf_path
 
 
 if __name__ == "__main__":
     generate_report()
+    generate_pdf()

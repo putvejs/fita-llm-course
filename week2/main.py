@@ -21,10 +21,11 @@ def run():
     print("\n=== Step 2: Execute plan — SQL, charts, insights ===")
     step2.execute_plan()
 
-    print("\n=== Step 3: Generate HTML report ===")
+    print("\n=== Step 3: Generate HTML + PDF report ===")
     report_path = step3.generate_report()
+    step3.generate_pdf()
 
-    print(f"\nDone. Open {report_path} in your browser.")
+    print(f"\nDone. Open {report_path} in your browser or output/report.pdf.")
 
 
 if __name__ == "__main__":
