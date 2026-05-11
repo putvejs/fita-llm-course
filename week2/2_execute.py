@@ -5,6 +5,9 @@ Outputs: output/results.json + output/charts/*.png
 import json
 import os
 
+from dotenv import load_dotenv
+load_dotenv()
+
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
