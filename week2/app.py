@@ -2,6 +2,7 @@
 Flask web server: interactive dashboard with data filtering.
 Run: python app.py  (or via Docker Compose)
 """
+import json
 import os
 
 from dotenv import load_dotenv
@@ -212,6 +213,80 @@ def mandate_productivity():
     """)
     conn.close()
     return jsonify(rows)
+
+
+@app.route("/api/top-orgs")
+def top_orgs():
+    where, params = build_where(*args())
+    conn = get_conn()
+    rows = q(conn, f"""
+        SELECT o.id AS org_id,
+               ROUND(SUM(p.amount), 2) AS revenue,
+               COUNT(p.id) AS payment_count
+        FROM payments p
+        JOIN mandates m ON p.mandate_id = m.id
+        JOIN organisations o ON m.organisation_id = o.id
+        {where}
+        GROUP BY o.id
+        ORDER BY revenue DESC
+        LIMIT 15
+    """, params)
+    conn.close()
+    return jsonify(rows)
+
+
+@app.route("/api/mandate-productivity-by-vertical")
+def mandate_productivity_by_vertical():
+    where, params = build_where(*args())
+    conn = get_conn()
+    rows = q(conn, f"""
+        SELECT o.parent_vertical AS vertical,
+               COUNT(DISTINCT m.id) AS mandate_count,
+               COUNT(p.id) AS payment_count,
+               ROUND(COUNT(p.id) / NULLIF(COUNT(DISTINCT m.id), 0), 2) AS avg_payments_per_mandate
+        FROM payments p
+        JOIN mandates m ON p.mandate_id = m.id
+        JOIN organisations o ON m.organisation_id = o.id
+        {where}
+        GROUP BY o.parent_vertical
+        ORDER BY avg_payments_per_mandate DESC
+    """, params)
+    conn.close()
+    return jsonify(rows)
+
+
+@app.route("/api/monthly-mandates")
+def monthly_mandates():
+    _, _, _, start, end = args()
+    conds, mparams = [], []
+    if start:
+        conds.append("m.created_at >= %s")
+        mparams.append(start + "-01")
+    if end:
+        conds.append("m.created_at < %s")
+        mparams.append(_next_month(end))
+    where = ("WHERE " + " AND ".join(conds)) if conds else ""
+    conn = get_conn()
+    rows = q(conn, f"""
+        SELECT DATE_FORMAT(m.created_at, '%Y-%m') AS month,
+               COUNT(m.id) AS new_mandates
+        FROM mandates m
+        {where}
+        GROUP BY DATE_FORMAT(m.created_at, '%Y-%m')
+        ORDER BY month
+    """, tuple(mparams))
+    conn.close()
+    return jsonify(rows)
+
+
+@app.route("/api/results")
+def get_results():
+    path = os.path.join(os.path.dirname(__file__), "output", "results.json")
+    try:
+        with open(path) as f:
+            return jsonify(json.load(f))
+    except FileNotFoundError:
+        return jsonify([])
 
 
 if __name__ == "__main__":
