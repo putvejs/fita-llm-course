@@ -1,88 +1,88 @@
 # Visualization Plan
 
-Generated: 2026-05-11 19:17  
+Generated: 2026-05-12 09:28  
 Context: [context.md](../context.md)
 
 ---
 
-## 1. Monthly Payment Volume & Revenue Trend (Mar 2018 – Mar 2020)
+## 1. Monthly Payment Volume & Revenue Growth (Apr 2018 – Mar 2020)
 
 **Chart type:** `line`  
 **X axis:** Month  
 **Y axis:** Total Revenue (£)
 
-Tracks how total payment count and GBP revenue have grown over time, revealing seasonality, growth phases, and any revenue dips that need attention.
+Tracks the platform's growth trajectory over time, revealing the explosive ramp-up from soft launch through plateau. Helps identify inflection points and assess whether growth is sustained or decelerating heading into Mar 2020.
 
-> **SQL hint:** JOIN payments → mandates → organisations; GROUP BY DATE_FORMAT(payments.created_at, '%Y-%m'); aggregate COUNT(*) and SUM(amount/100) WHERE currency='GBP'; order by month ascending
-
----
-
-## 2. Revenue by Industry Vertical
-
-**Chart type:** `horizontal_bar`  
-**X axis:** Total Revenue (£)  
-**Y axis:** Industry Vertical
-
-Compares total GBP revenue contributed by each industry vertical to identify the highest-value customer segments and guide sales/marketing prioritisation.
-
-> **SQL hint:** JOIN payments → mandates → organisations; GROUP BY organisations.parent_vertical; aggregate SUM(payments.amount/100) WHERE currency='GBP'; order by revenue descending
+> **SQL hint:** JOIN payments → mandates → organisations; GROUP BY DATE_FORMAT(p.created_at, '%Y-%m'); aggregate SUM(p.amount) and COUNT(p.id); filter currency = 'GBP' for clean single-currency trend
 
 ---
 
-## 3. Payment Count by Industry Vertical
+## 2. Revenue vs Payment Volume by Industry Vertical
 
 **Chart type:** `bar`  
 **X axis:** Industry Vertical  
-**Y axis:** Number of Payments
+**Y axis:** Total Revenue (£)
 
-Shows transaction volume per vertical so that high-volume but lower-value verticals (e.g. Sports & Fitness) can be distinguished from high-value, lower-volume ones (e.g. Digital Services).
+Contrasts which verticals generate the most money versus the most transactions, exposing the high-value/low-volume (Digital Services, Property) vs high-volume/low-value (Sports & Fitness, Tradesmen) strategic split. Critical for pricing and acquisition decisions.
 
-> **SQL hint:** JOIN payments → mandates → organisations; GROUP BY organisations.parent_vertical; aggregate COUNT(payments.id); order by count descending
+> **SQL hint:** JOIN payments → mandates → organisations; GROUP BY o.parent_vertical; aggregate SUM(p.amount) as revenue and COUNT(p.id) as payment_count; include avg amount for annotation; filter GBP
 
 ---
 
-## 4. Payment Source Mix: Volume vs Revenue Share
+## 3. Average Payment Value by Industry Vertical
+
+**Chart type:** `horizontal_bar`  
+**X axis:** Average Payment (£)  
+**Y axis:** Industry Vertical
+
+Ranks verticals by average transaction size to identify premium segments. Highlights that Digital Services customers pay nearly 6x more per transaction than Tradesmen, informing customer lifetime value estimates and targeted upsell strategies.
+
+> **SQL hint:** JOIN payments → mandates → organisations; GROUP BY o.parent_vertical; aggregate AVG(p.amount); ORDER BY AVG(p.amount) DESC; filter currency = 'GBP'
+
+---
+
+## 4. Payment Source Mix: Volume & Revenue Contribution
 
 **Chart type:** `bar`  
 **X axis:** Payment Source  
 **Y axis:** Total Revenue (£)
 
-Compares dashboard, app, and API channels across both payment count and total revenue to reveal which integration channel drives the most value and where to invest in tooling.
+Shows how Dashboard, App, and API channels compare on both payment count and revenue share. Reveals the App channel's deprecation after Mar 2019 and the API channel's premium positioning, informing channel investment and migration planning.
 
-> **SQL hint:** FROM payments; GROUP BY source; aggregate COUNT(*) and SUM(amount/100) WHERE currency='GBP'; returns three rows: dashboard, app, api
-
----
-
-## 5. Mandate Productivity by Scheme (Avg Payments per Mandate)
-
-**Chart type:** `bar`  
-**X axis:** Payment Scheme  
-**Y axis:** Avg Payments per Mandate
-
-Contrasts BACS and SEPA_CORE mandates on average payments generated per mandate, quantifying the 30% productivity premium of SEPA and informing scheme expansion decisions.
-
-> **SQL hint:** JOIN payments → mandates; GROUP BY mandates.scheme; aggregate COUNT(payments.id) / COUNT(DISTINCT mandates.id) as avg_payments; returns BACS and SEPA_CORE rows
+> **SQL hint:** SELECT p.source, COUNT(p.id) as payment_count, SUM(p.amount) as revenue, AVG(p.amount) as avg_payment FROM payments p GROUP BY p.source; no joins required
 
 ---
 
-## 6. Average Payment Value by Industry Vertical
+## 5. Top 15 Organisations by Revenue Contribution
 
 **Chart type:** `horizontal_bar`  
-**X axis:** Average Payment Value (£)  
-**Y axis:** Industry Vertical
+**X axis:** Total Revenue (£)  
+**Y axis:** Organisation ID
 
-Reveals which verticals command the highest average transaction size, helping prioritise upsell efforts and identify verticals with premium pricing power.
+Visualises the long-tail revenue concentration, showing how a handful of organisations dominate total revenue. The top org alone accounts for 7.6% of GBP revenue. Essential for key account management and churn risk assessment.
 
-> **SQL hint:** JOIN payments → mandates → organisations; GROUP BY organisations.parent_vertical; aggregate AVG(payments.amount/100) WHERE currency='GBP'; order by avg value descending
+> **SQL hint:** JOIN payments → mandates → organisations; GROUP BY o.id; aggregate SUM(p.amount); ORDER BY SUM(p.amount) DESC; LIMIT 15; filter currency = 'GBP'
 
 ---
 
-## 7. New Mandate Creation vs New Organisation Onboarding Over Time
+## 6. Mandate Productivity: Average Payments per Mandate by Vertical
+
+**Chart type:** `bar`  
+**X axis:** Industry Vertical  
+**Y axis:** Avg Payments per Mandate
+
+Measures how actively mandates are being used across verticals — a proxy for customer engagement and recurring billing health. Low utilisation may signal mandates created but not actioned, representing unrealised revenue.
+
+> **SQL hint:** JOIN mandates → organisations, then LEFT JOIN payments; GROUP BY o.parent_vertical; aggregate COUNT(p.id) / COUNT(DISTINCT m.id) as payments_per_mandate; include both BACS and SEPA
+
+---
+
+## 7. Monthly New Mandate Authorisations Over Time
 
 **Chart type:** `line`  
 **X axis:** Month  
-**Y axis:** Count
+**Y axis:** New Mandates Authorised
 
-Overlays monthly new mandate authorisations against new organisation sign-ups to assess whether existing merchants are expanding their customer base or whether growth is purely driven by new merchant acquisition.
+Tracks the rate at which new end-customers are granting direct debit permissions, serving as a leading indicator of future payment volume. A slowdown in mandate creation predicts revenue growth deceleration before it appears in payment figures.
 
-> **SQL hint:** Two series: (1) SELECT DATE_FORMAT(created_at,'%Y-%m'), COUNT(*) FROM mandates GROUP BY DATE_FORMAT(created_at,'%Y-%m'); (2) SELECT DATE_FORMAT(created_at,'%Y-%m'), COUNT(*) FROM organisations GROUP BY DATE_FORMAT(created_at,'%Y-%m'); join on month
+> **SQL hint:** SELECT DATE_FORMAT(m.created_at, '%Y-%m') as month, COUNT(m.id) as new_mandates FROM mandates m GROUP BY DATE_FORMAT(m.created_at, '%Y-%m') ORDER BY month ASC
