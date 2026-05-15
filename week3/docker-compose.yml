@@ -1,0 +1,44 @@
+services:
+
+  # One-shot: research Docker Compose topics and generate guides
+  pipeline:
+    build:
+      context: ..
+      dockerfile: week3/Dockerfile
+    env_file: .env
+    volumes:
+      - ./output:/app/output
+    command: python main.py
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Always-on: interactive Docker Compose Q&A assistant
+  web:
+    build:
+      context: ..
+      dockerfile: week3/Dockerfile
+    env_file: .env
+    ports:
+      - "5003:5003"
+    volumes:
+      - ./output:/app/output
+    command: python app.py
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Docker-native log viewer — shows real-time logs from all containers
+  # Open http://localhost:9999 to browse logs in the browser
+  logs:
+    image: amir20/dozzle:latest
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    ports:
+      - "9999:8080"
+    restart: unless-stopped

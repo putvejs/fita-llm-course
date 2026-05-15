@@ -1,0 +1,11 @@
+# Models used in week3
+models:
+  - id: claude-sonnet-4-6
+    name: Claude Sonnet 4.6
+    provider: anthropic
+    sdk: anthropic-python
+    sdk_version: ">=0.50"
+    purpose:
+      - Docker Compose topic research (1_research.py)
+      - Cheatsheet generation (2_guide.py)
+      - Interactive Q&A assistant (app.py)
